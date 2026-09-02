@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ポチログ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EAE4D8;
+    --paper-card: #F5F1E7;
+    --ink: #2B2A26;
+    --ink-soft: #726C5E;
+    --line: #D2C9B7;
+    --drive: #2F4858;
+    --drive-soft: #46647A;
+    --drive-tint: #DDE5E9;
+    --record: #A6672E;
+    --record-tint: #F0E1CF;
+    --stop: #9B4A3A;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Sans JP", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 8px; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+  h1 {
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+  .date-nav { display: flex; align-items: center; gap: 10px; }
+  .date-nav button {
+    background: none; border: none; color: var(--ink-soft);
+    font-size: 18px; padding: 4px 6px; cursor: pointer; line-height: 1;
+  }
+  .date-label { font-size: 13px; color: var(--ink-soft); font-weight: 500; min-width: 92px; text-align: center; }
+
+  .summary { font-size: 12.5px; color: var(--ink-soft); margin: 2px 0 18px; }
+  .summary b { color: var(--ink); font-weight: 600; }
+
+  .action-btn {
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: transform 0.08s ease, box-shadow 0.15s ease;
+  }
+  .action-btn:active { transform: scale(0.97); }
+
+  .drive-btn {
+    background: var(--drive);
+    color: #F4EFE4;
+    font-size: 19px;
+    padding: 22px 10px;
+    margin-bottom: 12px;
+    box-shadow: 0 3px 0 #1E313C;
+  }
+  .drive-btn.running {
+    background: var(--drive-soft);
+    box-shadow: 0 3px 0 #2C4552;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 3px 0 #2C4552; }
+    50% { box-shadow: 0 3px 0 #2C4552, 0 0 0 5px rgba(70,100,122,0.18); }
+  }
+  .drive-btn .timer { font-variant-numeric: tabular-nums; font-weight: 500; font-size: 15px; opacity: 0.9; }
+
+  .record-btn {
+    background: var(--record-tint);
+    color: var(--record);
+    font-size: 16px;
+    padding: 15px 10px;
+    margin-bottom: 22px;
+    border: 1.5px solid #DDBD97;
+  }
+
+  .log-title { font-size: 13px; color: var(--ink-soft); font-weight: 600; margin: 0 0 10px 2px; }
+
+  .entry {
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .entry .time {
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    min-width: 44px;
+    padding-top: 1px;
+  }
+  .entry .icon {
+    font-size: 16px;
+    min-width: 20px;
+    text-align: center;
+    padding-top: 1px;
+  }
+  .entry .body { flex: 1; min-width: 0; }
+  .entry .main-text { font-size: 14.5px; line-height: 1.5; word-break: break-word; }
+  .entry .sub-text { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .entry.drive .main-text { color: var(--drive); font-weight: 600; }
+  .entry .del {
+    background: none; border: none; color: #C4BBA5; font-size: 13px;
+    cursor: pointer; padding: 2px 4px; align-self: center;
+  }
+
+  .empty {
+    text-align: center; color: var(--ink-soft); font-size: 13.5px;
+    padding: 30px 10px; line-height: 1.7;
+  }
+
+  /* modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(43,42,38,0.42);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.18s ease;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+  .sheet {
+    background: var(--paper); width: 100%; max-width: 480px;
+    border-radius: 20px 20px 0 0; padding: 22px 18px 26px;
+    transform: translateY(16px); transition: transform 0.2s ease;
+  }
+  .overlay.open .sheet { transform: translateY(0); }
+  .sheet h2 {
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-size: 18px; margin: 0 0 4px;
+  }
+  .sheet .sheet-sub { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 16px; }
+  .sheet textarea, .sheet input[type=text] {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 10px;
+    padding: 12px 12px; font-size: 15px; font-family: inherit;
+    background: #fff; color: var(--ink); resize: none;
+  }
+  .sheet textarea:focus, .sheet input:focus { outline: 2px solid var(--drive-soft); outline-offset: 1px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+  .chip {
+    background: var(--paper-card); border: 1px solid var(--line);
+    border-radius: 999px; padding: 7px 13px; font-size: 13px;
+    color: var(--ink-soft); cursor: pointer;
+  }
+  .chip:active { background: var(--record-tint); }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .sheet-actions button {
+    flex: 1; border: none; border-radius: 10px; padding: 13px 10px;
+    font-size: 14.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn-cancel { background: none; color: var(--ink-soft); border: 1.5px solid var(--line) !important; }
+  .btn-save { background: var(--drive); color: #F4EFE4; }
+  .sheet.record-mode .btn-save { background: var(--record); }
+
+  .toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--paper); font-size: 13px;
+    padding: 9px 16px; border-radius: 999px; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease; z-index: 60;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ポチログ</h1>
+  </header>
+  <div class="date-nav" style="margin-bottom:2px;">
+    <button id="prevDay">‹</button>
+    <span class="date-label" id="dateLabel">-</span>
+    <button id="nextDay">›</button>
+  </div>
+  <div class="summary" id="summary"></div>
+
+  <button class="action-btn drive-btn" id="driveBtn">
+    <span id="driveBtnLabel">🚗 出発する</span>
+  </button>
+  <button class="action-btn record-btn" id="recordBtn">＋ きろくする</button>
+
+  <div class="log-title" id="logTitle">きょうのログ</div>
+  <div id="logList"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet" id="sheet">
+    <h2 id="sheetTitle">なんのために降りた？</h2>
+    <div class="sheet-sub" id="sheetSub"></div>
+    <div class="chips" id="chips"></div>
+    <textarea id="sheetInput" rows="2" placeholder="内容を入力…"></textarea>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="sheetCancel">キャンセル</button>
+      <button class="btn-save" id="sheetSave">記録する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let entries = [];
+let activeTrip = null;
+let viewDate = new Date();
+let sheetMode = null; // 'drive-end' | 'note'
+let timerInterval = null;
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function dateKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function timeLabel(d){ return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function fmtDateLabel(d){
+  const w = ['日','月','火','水','木','金','土'][d.getDay()];
+  const today = dateKey(d) === dateKey(new Date());
+  return `${d.getMonth()+1}/${d.getDate()}(${w})${today ? ' 今日' : ''}`;
+}
+function fmtDuration(ms){
+  const min = Math.round(ms/60000);
+  if (min < 60) return `${min}分`;
+  return `${Math.floor(min/60)}時間${min%60}分`;
+}
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1600);
+}
+
+async function loadAll(){
+  try {
+    const res = await window.storage.get('entries', false);
+    entries = res ? JSON.parse(res.value) : [];
+  } catch(e){ entries = []; }
+  try {
+    const res = await window.storage.get('activeTrip', false);
+    activeTrip = res ? JSON.parse(res.value) : null;
+  } catch(e){ activeTrip = null; }
+  render();
+  updateDriveButton();
+}
+
+async function saveEntries(){
+  try {
+    const r = await window.storage.set('entries', JSON.stringify(entries), false);
+    if (!r) showToast('保存に失敗したかも…');
+  } catch(e){ showToast('保存エラー'); }
+}
+async function saveActiveTrip(){
+  try {
+    if (activeTrip) {
+      await window.storage.set('activeTrip', JSON.stringify(activeTrip), false);
+    } else {
+      try { await window.storage.delete('activeTrip', false); } catch(e){}
+    }
+  } catch(e){}
+}
+
+function entriesForDate(d){
+  const key = dateKey(d);
+  return entries
+    .filter(e => dateKey(new Date(e.startTime)) === key)
+    .sort((a,b)=> new Date(b.startTime) - new Date(a.startTime));
+}
+
+function render(){
+  $('dateLabel').textContent = fmtDateLabel(viewDate);
+  const today = dateKey(viewDate) === dateKey(new Date());
+  $('logTitle').textContent = today ? 'きょうのログ' : `${viewDate.getMonth()+1}/${viewDate.getDate()}のログ`;
+
+  const list = entriesForDate(viewDate);
+  const driveMs = list
+    .filter(e => e.type === 'drive' && e.endTime)
+    .reduce((sum,e)=> sum + (new Date(e.endTime) - new Date(e.startTime)), 0);
+  const driveCount = list.filter(e=>e.type==='drive').length;
+  $('summary').innerHTML = list.length
+    ? `記録 <b>${list.length}</b>件・移動 <b>${driveCount}</b>回・合計移動 <b>${driveMs? fmtDuration(driveMs) : '0分'}</b>`
+    : '';
+
+  const box = $('logList');
+  if (list.length === 0){
+    box.innerHTML = `<div class="empty">まだ記録がないで。<br>下のボタンをポチッと押してな。</div>`;
+    return;
+  }
+  box.innerHTML = list.map(e => {
+    const t = timeLabel(new Date(e.startTime));
+    if (e.type === 'drive'){
+      const dur = e.endTime ? fmtDuration(new Date(e.endTime)-new Date(e.startTime)) : '移動中…';
+      return `
+        <div class="entry drive">
+          <div class="time">${t}</div>
+          <div class="icon">🚗</div>
+          <div class="body">
+            <div class="main-text">${escapeHtml(e.purpose || '(目的未記入)')}</div>
+            <div class="sub-text">移動 ${dur}</div>
+          </div>
+          <button class="del" data-id="${e.id}">✕</button>
+        </div>`;
+    }
+    return `
+      <div class="entry">
+        <div class="time">${t}</div>
+        <div class="icon">📍</div>
+        <div class="body">
+          <div class="main-text">${escapeHtml(e.text)}</div>
+        </div>
+        <button class="del" data-id="${e.id}">✕</button>
+      </div>`;
+  }).join('');
+
+  box.querySelectorAll('.del').forEach(btn=>{
+    btn.addEventListener('click', ()=> deleteEntry(btn.dataset.id));
+  });
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function deleteEntry(id){
+  entries = entries.filter(e => e.id !== id);
+  await saveEntries();
+  render();
+}
+
+function updateDriveButton(){
+  const btn = $('driveBtn');
+  const label = $('driveBtnLabel');
+  if (activeTrip){
+    btn.classList.add('running');
+    tickTimer();
+    if (!timerInterval) timerInterval = setInterval(tickTimer, 1000);
+  } else {
+    btn.classList.remove('running');
+    label.textContent = '🚗 出発する';
+    if (timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  }
+}
+function tickTimer(){
+  if (!activeTrip) return;
+  const ms = Date.now() - new Date(activeTrip.startTime).getTime();
+  const min = Math.floor(ms/60000);
+  const sec = Math.floor((ms%60000)/1000);
+  $('driveBtnLabel').textContent = `🚗 移動中 ${pad(min)}:${pad(sec)}（タップで到着）`;
+}
+
+function commonPurposes(type){
+  const counts = {};
+  entries.filter(e => type === 'drive' ? e.type==='drive' : e.type==='note').forEach(e=>{
+    const v = type === 'drive' ? e.purpose : e.text;
+    if (v) counts[v] = (counts[v]||0) + 1;
+  });
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6).map(x=>x[0]);
+}
+
+function openSheet(mode){
+  sheetMode = mode;
+  const sheet = $('sheet');
+  const chipsBox = $('chips');
+  $('sheetInput').value = '';
+  if (mode === 'drive-end'){
+    sheet.classList.remove('record-mode');
+    $('sheetTitle').textContent = 'なんのために降りた？';
+    $('sheetSub').textContent = '目的を入れて記録するで';
+    $('sheetInput').placeholder = '例）戸田さん宅へ送迎';
+    chipsBox.innerHTML = commonPurposes('drive').map(p=>`<div class="chip" data-v="${escapeHtml(p)}">${escapeHtml(p)}</div>`).join('');
+  } else {
+    sheet.classList.add('record-mode');
+    $('sheetTitle').textContent = 'なにした？';
+    $('sheetSub').textContent = `${timeLabel(new Date())}の記録として残すで`;
+    $('sheetInput').placeholder = '例）新神野で買い出し';
+    chipsBox.innerHTML = commonPurposes('note').map(p=>`<div class="chip" data-v="${escapeHtml(p)}">${escapeHtml(p)}</div>`).join('');
+  }
+  chipsBox.querySelectorAll('.chip').forEach(c=>{
+    c.addEventListener('click', ()=>{ $('sheetInput').value = c.dataset.v; });
+  });
+  $('overlay').classList.add('open');
+  setTimeout(()=> $('sheetInput').focus(), 150);
+}
+function closeSheet(){
+  $('overlay').classList.remove('open');
+  sheetMode = null;
+}
+
+async function handleDriveBtn(){
+  if (!activeTrip){
+    activeTrip = { startTime: new Date().toISOString() };
+    await saveActiveTrip();
+    updateDriveButton();
+    showToast('移動を記録開始');
+  } else {
+    openSheet('drive-end');
+  }
+}
+
+async function handleSheetSave(){
+  const val = $('sheetInput').value.trim();
+  if (!val){ showToast('内容を入れてな'); return; }
+  if (sheetMode === 'drive-end'){
+    const entry = {
+      id: 'd' + Date.now(),
+      type: 'drive',
+      startTime: activeTrip.startTime,
+      endTime: new Date().toISOString(),
+      purpose: val
+    };
+    entries.push(entry);
+    activeTrip = null;
+    await saveActiveTrip();
+    await saveEntries();
+    updateDriveButton();
+    showToast('到着を記録したで');
+  } else {
+    const entry = {
+      id: 'n' + Date.now(),
+      type: 'note',
+      startTime: new Date().toISOString(),
+      text: val
+    };
+    entries.push(entry);
+    await saveEntries();
+    showToast('記録したで');
+  }
+  closeSheet();
+  render();
+}
+
+$('driveBtn').addEventListener('click', handleDriveBtn);
+$('recordBtn').addEventListener('click', ()=> openSheet('note'));
+$('sheetCancel').addEventListener('click', closeSheet);
+$('sheetSave').addEventListener('click', handleSheetSave);
+$('overlay').addEventListener('click', (e)=>{ if (e.target.id === 'overlay') closeSheet(); });
+
+$('prevDay').addEventListener('click', ()=>{ viewDate.setDate(viewDate.getDate()-1); render(); });
+$('nextDay').addEventListener('click', ()=>{ viewDate.setDate(viewDate.getDate()+1); render(); });
+
+loadAll();
+</script>
+</body>
+</html>
