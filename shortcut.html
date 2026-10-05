@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポチログ ショートカット用</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@700;900&family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EAE4D8; --paper-card: #F5F1E7; --ink: #2B2A26; --ink-soft: #726C5E;
+    --line: #D2C9B7; --drive: #2F4858; --record: #A6672E; --record-tint: #F0E1CF;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: "Noto Sans JP", sans-serif; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-family: "Zen Kaku Gothic New", sans-serif; font-weight: 900; font-size: 20px; margin: 0 0 4px; }
+  h2 { font-family: "Zen Kaku Gothic New", sans-serif; font-size: 17px; margin: 26px 0 8px; color: var(--drive); }
+  p, li { font-size: 13.5px; line-height: 1.7; }
+  .note { font-size: 12.5px; color: var(--ink-soft); }
+  .item { background: var(--paper-card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0; }
+  .item .label { font-size: 12px; color: var(--ink-soft); font-weight: 600; margin-bottom: 4px; }
+  .item code { display: block; font-size: 11.5px; word-break: break-all; white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace; }
+  .item button {
+    margin-top: 8px; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600;
+    background: var(--drive); color: #F4EFE4; font-family: inherit; cursor: pointer;
+  }
+  .warn { background: var(--record-tint); border: 1px solid #DDBD97; border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.6; }
+  a { color: var(--drive); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⌚ ショートカット用コピー集</h1>
+  <p class="note">ショートカットを作るときに、ここの文字を「コピー」して貼り付けてな。<br>★のところは、貼り付けたあとに「変数」に置き換えるで。</p>
+  <div id="content"></div>
+  <p style="margin-top:30px;"><a href="./">← ポチログに戻る</a></p>
+</div>
+<script>
+const API_KEY = 'AIzaSyDm_v6dwxbIUf4xwhmGb_P9YdlaJgA_3Qs';
+const PROJECT = 'pochilog-fujita';
+let key = null;
+try { key = localStorage.getItem('pochilog_key'); } catch(e){}
+
+const box = document.getElementById('content');
+if (!key){
+  box.innerHTML = `<div class="warn">この端末にはまだ合言葉が入ってへんで。<br>先に <a href="./">ポチログ</a> を開いて合言葉を入れてから、もう一回このページを開いてな。</div>`;
+} else {
+  const base = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/p/${key}`;
+  const items = [
+    ['h', '🚗 出発 で使うもの'],
+    ['URL（出発・到着で共通）', `${base}/state/active?key=${API_KEY}`],
+    ['本文（出発）', `{"fields":{"startTime":{"stringValue":"★時刻"}}}`],
+    ['h', '🅿️ 到着 で使うもの'],
+    ['URL（到着の記録を保存）', `${base}/entries/d★番号?key=${API_KEY}`],
+    ['本文（到着）', `{"fields":{"type":{"stringValue":"drive"},"startTime":{"stringValue":"★出発時刻"},"endTime":{"stringValue":"★時刻"},"purpose":{"stringValue":"★目的"},"day":{"stringValue":"★日付"}}}`],
+    ['h', '📍 メモ で使うもの'],
+    ['URL（メモを保存）', `${base}/entries/n★番号?key=${API_KEY}`],
+    ['本文（メモ）', `{"fields":{"type":{"stringValue":"note"},"startTime":{"stringValue":"★時刻"},"text":{"stringValue":"★内容"},"day":{"stringValue":"★日付"}}}`],
+    ['h', '共通'],
+    ['ヘッダのキー', 'Content-Type'],
+    ['ヘッダの値', 'application/json'],
+    ['辞書の値を取得 のキー（到着）', 'fields.startTime.stringValue'],
+  ];
+  box.innerHTML = items.map(([label, text], i) => label === 'h'
+    ? `<h2>${text}</h2>`
+    : `<div class="item"><div class="label">${label}</div><code id="c${i}"></code><button data-i="${i}">コピー</button></div>`
+  ).join('');
+  items.forEach(([label, text], i) => { if (label !== 'h') document.getElementById('c' + i).textContent = text; });
+  box.querySelectorAll('button').forEach(b => b.addEventListener('click', async () => {
+    const text = items[b.dataset.i][1];
+    try { await navigator.clipboard.writeText(text); b.textContent = 'コピーしたで ✓'; }
+    catch(e){ b.textContent = '長押しで選んでコピーしてな'; }
+    setTimeout(() => b.textContent = 'コピー', 1800);
+  }));
+}
+</script>
+</body>
+</html>
